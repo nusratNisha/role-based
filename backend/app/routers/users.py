@@ -48,7 +48,7 @@ async def create_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only admins can create admin accounts",
         )
-
+    
     # Check email
     result = await db.execute(select(User).where(User.email == data.email))
     if result.scalar_one_or_none():
