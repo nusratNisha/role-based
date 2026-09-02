@@ -1,9 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.config import get_settings
 from app.routers import auth, users, dashboard
-
-settings = get_settings()
 
 app = FastAPI(
     title="RBAC Dashboard API",
@@ -11,10 +8,12 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS - critical for cookies to work cross-origin
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

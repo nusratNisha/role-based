@@ -16,7 +16,7 @@ from app.dependencies import get_current_user
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=None, status_code=status.HTTP_201_CREATED)
 async def register(
     data: UserCreate,
     response: Response,
@@ -45,7 +45,8 @@ async def register(
     token = create_access_token(str(user.id), user.role.value)
     set_auth_cookie(response, token)
 
-    return user
+    from app.schemas import AuthResponse
+    return AuthResponse(user=user, token=token)
 
 
 @router.post("/login")
@@ -72,7 +73,8 @@ async def login(
     token = create_access_token(str(user.id), user.role.value)
     set_auth_cookie(response, token)
 
-    return {"message": "Login successful"}
+    from app.schemas import AuthResponse
+    return AuthResponse(user=user, token=token)
 
 
 @router.post("/logout")

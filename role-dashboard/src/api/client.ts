@@ -36,6 +36,7 @@ class ApiClient {
 
     const response = await fetch(url, {
       ...options,
+      credentials: 'include',
       headers,
     });
 
@@ -49,105 +50,95 @@ class ApiClient {
 
   // Auth
   async login(credentials: LoginCredentials): Promise<{ user: User; token: string }> {
-    // MOCK: Replace with actual API call
-    // return this.request('/auth/login', {
-    //   method: 'POST',
-    //   body: JSON.stringify(credentials),
-    // });
-
-    // Mock implementation for demo
-    await new Promise(r => setTimeout(r, 800));
+    const response = await this.request<{ user: any; token: string }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    });
     
-    const mockUser: User = {
-      id: '1',
-      email: credentials.email,
-      firstName: 'John',
-      lastName: 'Doe',
-      role: 'admin',
-      isActive: true,
-      createdAt: new Date().toISOString(),
+    return {
+      user: this.mapUser(response.user),
+      token: response.token,
     };
-    
-    const mockToken = 'mock_jwt_token_' + Math.random();
-    return { user: mockUser, token: mockToken };
   }
 
   async register(data: RegisterData): Promise<{ user: User; token: string }> {
-    await new Promise(r => setTimeout(r, 800));
+    const response = await this.request<{ user: any; token: string }>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: data.email,
+        password: data.password,
+        first_name: data.firstName,
+        last_name: data.lastName,
+        role: 'viewer',
+        is_active: true,
+      }),
+    });
     
-    const mockUser: User = {
-      id: Date.now().toString(),
-      email: data.email,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      role: 'viewer',
-      isActive: true,
-      createdAt: new Date().toISOString(),
+    return {
+      user: this.mapUser(response.user),
+      token: response.token,
     };
-    
-    return { user: mockUser, token: 'mock_jwt_token_' + Math.random() };
   }
 
   async getCurrentUser(): Promise<User> {
-    await new Promise(r => setTimeout(r, 500));
-    return {
-      id: '1',
-      email: 'admin@example.com',
-      firstName: 'Admin',
-      lastName: 'User',
-      role: 'admin',
-      isActive: true,
-      createdAt: new Date().toISOString(),
-    };
+    const response = await this.request<any>('/auth/me');
+    return this.mapUser(response);
   }
 
   // Users
   async getUsers(): Promise<User[]> {
-    await new Promise(r => setTimeout(r, 600));
-    return [
-      { id: '1', email: 'admin@example.com', firstName: 'Admin', lastName: 'User', role: 'admin', isActive: true, createdAt: '2024-01-15T10:00:00Z' },
-      { id: '2', email: 'manager@example.com', firstName: 'Jane', lastName: 'Manager', role: 'manager', isActive: true, createdAt: '2024-02-20T10:00:00Z' },
-      { id: '3', email: 'editor@example.com', firstName: 'Bob', lastName: 'Editor', role: 'editor', isActive: true, createdAt: '2024-03-10T10:00:00Z' },
-      { id: '4', email: 'viewer@example.com', firstName: 'Alice', lastName: 'Viewer', role: 'viewer', isActive: false, createdAt: '2024-04-05T10:00:00Z' },
-    ];
+    const users = await this.request<any[]>('/users');
+    return users.map(user => this.mapUser(user));
   }
 
   async createUser(user: Omit<User, 'id' | 'createdAt'>): Promise<User> {
-    await new Promise(r => setTimeout(r, 600));
-    return { ...user, id: Date.now().toString(), createdAt: new Date().toISOString() };
+    const response = await this.request<any>('/users', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: user.email,
+        password: 'ChangeMe123!',
+        first_name: user.firstName,
+        last_name: user.lastName,
+        role: user.role,
+        is_active: user.isActive,
+      }),
+    });
+    return this.mapUser(response);
   }
 
   async updateUser(id: string, user: Partial<User>): Promise<User> {
-    await new Promise(r => setTimeout(r, 600));
-    return { ...user, id } as User;
+    const response = await this.request<any>(`/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        first_name: user.firstName,
+        last_name: user.lastName,
+        role: user.role,
+        is_active: user.isActive,
+      }),
+    });
+    return this.mapUser(response);
   }
 
   async deleteUser(id: string): Promise<void> {
-    await new Promise(r => setTimeout(r, 600));
+    await this.request<void>(`/users/${id}`, { method: 'DELETE' });
   }
 
   // Dashboard
   async getDashboardStats(): Promise<DashboardStats> {
-    await new Promise(r => setTimeout(r, 700));
+    return await this.request<DashboardStats>('/dashboard/stats');
+  }
+
+  // Helper to convert snake_case to camelCase
+  private mapUser(data: any): User {
     return {
-      totalUsers: 156,
-      activeUsers: 134,
-      newUsersThisMonth: 23,
-      roleDistribution: { admin: 4, manager: 12, editor: 45, viewer: 95 },
-      monthlyGrowth: [
-        { month: 'Jan', users: 120 },
-        { month: 'Feb', users: 132 },
-        { month: 'Mar', users: 128 },
-        { month: 'Apr', users: 145 },
-        { month: 'May', users: 156 },
-        { month: 'Jun', users: 156 },
-      ],
-      recentActivity: [
-        { id: '1', action: 'Created new user', user: 'Admin User', timestamp: '2024-06-15T10:30:00Z' },
-        { id: '2', action: 'Updated role permissions', user: 'Manager Jane', timestamp: '2024-06-15T09:15:00Z' },
-        { id: '3', action: 'Deleted inactive account', user: 'Admin User', timestamp: '2024-06-14T16:45:00Z' },
-        { id: '4', action: 'Updated profile', user: 'Bob Editor', timestamp: '2024-06-14T14:20:00Z' },
-      ],
+      id: data.id,
+      email: data.email,
+      firstName: data.first_name || data.firstName,
+      lastName: data.last_name || data.lastName,
+      role: data.role as any,
+      isActive: data.is_active !== undefined ? data.is_active : data.isActive,
+      createdAt: data.created_at || data.createdAt,
+      lastLogin: data.last_login || data.lastLogin,
     };
   }
 }

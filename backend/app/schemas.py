@@ -52,6 +52,11 @@ class TokenPayload(BaseModel):
     exp: Optional[datetime] = None
 
 
+class AuthResponse(BaseModel):
+    user: UserResponse
+    token: str
+
+
 # ─── Dashboard ───
 class DashboardStats(BaseModel):
     total_users: int
