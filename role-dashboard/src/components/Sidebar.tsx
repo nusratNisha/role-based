@@ -4,7 +4,6 @@ import {
   LayoutDashboard, 
   Users, 
   Settings, 
-  ShieldAlert, 
   X,
   LogOut
 } from 'lucide-react';
@@ -13,7 +12,7 @@ import { hasPermission } from '@/utils/roles';
 import { RoleBadge } from './RoleBadge';
 
 interface SidebarProps {
-  isOpen: boolean;
+  isOpen: boolean; 
   onClose: () => void;
 }
 
@@ -66,10 +65,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         {/* Header */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center">
+            {/* <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center">
               <ShieldAlert className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-bold text-lg text-primary-900">RBAC Dash</span>
+            </div> */}
+            <span className="font-bold text-lg text-primary-900">RBAC DashBoard</span>
           </div>
           <button onClick={onClose} className="lg:hidden p-1.5 hover:bg-primary-200 rounded-lg transition-colors">
             <X className="w-5 h-5 text-primary-900" />

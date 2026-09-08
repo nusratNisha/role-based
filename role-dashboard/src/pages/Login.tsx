@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShieldAlert, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 export const Login: React.FC = () => {
@@ -33,9 +33,9 @@ export const Login: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary-600 mb-4">
+          {/* <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary-600 mb-4">
             <ShieldAlert className="w-6 h-6 text-white" />
-          </div>
+          </div> */}
           <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
           <p className="text-gray-500 mt-1">Sign in to your dashboard</p>
         </div>

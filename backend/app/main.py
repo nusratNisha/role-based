@@ -1,5 +1,8 @@
+import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import List 
 from app.routers import auth, users, dashboard
 
 app = FastAPI(
@@ -24,6 +27,8 @@ app.include_router(users.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
 
 
-@app.get("/api/health")
-async def health_check():
-    return {"status": "ok"}
+@app.get("/")
+async def root():
+    return {
+        "message": "RBAC backend is running"
+    }

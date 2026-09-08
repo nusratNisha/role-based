@@ -2,7 +2,7 @@ from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from datetime import datetime
 from typing import Optional
 from app.models import UserRole
-
+from pydantic.alias_generators import to_camel
 
 # ─── Shared ───
 class UserBase(BaseModel):
@@ -11,7 +11,6 @@ class UserBase(BaseModel):
     last_name: str = Field(..., min_length=1, max_length=100)
     role: UserRole = UserRole.VIEWER
     is_active: bool = True
-
 
 # ─── Create ───
 class UserCreate(UserBase):
@@ -59,6 +58,8 @@ class AuthResponse(BaseModel):
 
 # ─── Dashboard ───
 class DashboardStats(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
     total_users: int
     active_users: int
     new_users_this_month: int
