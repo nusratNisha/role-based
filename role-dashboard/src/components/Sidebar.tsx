@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Users, 
+  FlaskConical,
   Settings, 
   X,
   LogOut
@@ -32,6 +33,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       label: 'Users', 
       icon: Users, 
       permission: 'users:read' as const 
+    },
+    {
+      to: '/projects',
+      label: 'Projects',
+      icon: FlaskConical,
+      permission: 'projects:read' as const,
     },
     { 
       to: '/settings', 

@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Request, Response
-from app.config import get_settings
+from app.config.config import get_settings
 from app.schemas import TokenPayload
 
 settings = get_settings()

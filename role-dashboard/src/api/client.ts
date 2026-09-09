@@ -1,4 +1,4 @@
-import { LoginCredentials, RegisterData, User, DashboardStats } from '@/types';
+import { LoginCredentials, RegisterData, User, DashboardStats, Project, ProjectStatus } from '@/types';
 
 // FastAPI
 const API_BASE_URL = 'http://localhost:8000/api';
@@ -123,6 +123,52 @@ class ApiClient {
     await this.request<void>(`/users/${id}`, { method: 'DELETE' });
   }
 
+  // Projects
+  async getProjects(): Promise<Project[]> {
+    const projects = await this.request<any[]>('/projects');
+    return projects.map(project => this.mapProject(project));
+  }
+
+  async createProject(data: {
+    name: string;
+    description?: string;
+    status: ProjectStatus;
+    assignedToId: string;
+  }): Promise<Project> {
+    const response = await this.request<any>('/projects', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: data.name,
+        description: data.description,
+        status: data.status,
+        assigned_to_id: data.assignedToId,
+      }),
+    });
+    return this.mapProject(response);
+  }
+
+  async updateProject(id: string, data: Partial<{
+    name: string;
+    description: string;
+    status: ProjectStatus;
+    assignedToId: string;
+  }>): Promise<Project> {
+    const response = await this.request<any>(`/projects/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        name: data.name,
+        description: data.description,
+        status: data.status,
+        assigned_to_id: data.assignedToId,
+      }),
+    });
+    return this.mapProject(response);
+  }
+
+  async deleteProject(id: string): Promise<void> {
+    await this.request<void>(`/projects/${id}`, { method: 'DELETE' });
+  }
+
   // Dashboard
   async getDashboardStats(): Promise<DashboardStats> {
     return await this.request<DashboardStats>('/dashboard/stats');
@@ -139,6 +185,18 @@ class ApiClient {
       isActive: data.is_active !== undefined ? data.is_active : data.isActive,
       createdAt: data.created_at || data.createdAt,
       lastLogin: data.last_login || data.lastLogin,
+    };
+  }
+
+  private mapProject(data: any): Project {
+    return {
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      status: data.status,
+      assignedToId: data.assigned_to_id || data.assignedToId,
+      createdAt: data.created_at || data.createdAt,
+      updatedAt: data.updated_at || data.updatedAt,
     };
   }
 }

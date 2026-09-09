@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List 
-from app.routers import auth, users, dashboard
+from app.routers import auth, users, dashboard, projects
 
 app = FastAPI(
     title="RBAC Dashboard API",
@@ -25,6 +25,7 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
+app.include_router(projects.router, prefix="/api")
 
 
 @app.get("/")

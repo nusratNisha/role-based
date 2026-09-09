@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Pencil, Trash2, MoreHorizontal } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2 } from 'lucide-react';
 import { User } from '@/types';
 import { api } from '@/api/client';
 import { useAuth } from '@/hooks/useAuth';

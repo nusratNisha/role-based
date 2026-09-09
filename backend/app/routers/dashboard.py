@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, extract
 from datetime import datetime, timedelta
-from app.database import get_db
-from app.models import User, UserRole
+from app.db.database import get_db
+from app.db.models import User, UserRole
 from app.schemas import DashboardStats
 from app.dependencies import PermissionChecker
 

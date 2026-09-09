@@ -11,8 +11,8 @@ from fastapi import (
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
-from app.models import User, UserRole
+from app.db.database import get_db
+from app.db.models import User, UserRole
 from app.schemas import (
     UserResponse,
     UserCreate,

@@ -11,6 +11,18 @@ export interface User {
   lastLogin?: string;
 }
 
+export type ProjectStatus = 'planning' | 'active' | 'completed' | 'archived';
+
+export interface Project {
+  id: string;
+  name: string;
+  description?: string;
+  status: ProjectStatus;
+  assignedToId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AuthState {
   user: User | null;
   token: string | null;
@@ -45,4 +57,8 @@ export type Permission =
   | 'users:delete'
   | 'settings:read'
   | 'settings:update'
-  | 'dashboard:read';
+  | 'dashboard:read'
+  | 'projects:read'
+  | 'projects:create'
+  | 'projects:update'
+  | 'projects:delete';

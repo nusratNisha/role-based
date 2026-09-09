@@ -1,7 +1,7 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 
-import { Layout } from '@/components/Layout';
+import { Layout } from '@/components/layout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 import { Login } from '@/pages/Login';
@@ -11,6 +11,7 @@ import { Users } from '@/pages/Users';
 import { UserForm } from '@/pages/UserForm';
 import { Settings } from '@/pages/Settings';
 import { Unauthorized } from '@/pages/Unauthorized';
+import { Projects } from '@/pages/Projects';
 
 function App() {
   return (
@@ -54,6 +55,15 @@ function App() {
           element={
             <ProtectedRoute permission="users:create">
               <UserForm />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="projects"
+          element={
+            <ProtectedRoute permission="projects:read">
+              <Projects />
             </ProtectedRoute>
           }
         />

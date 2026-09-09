@@ -2,9 +2,9 @@ from fastapi import Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.database import get_db
+from app.db.database import get_db
 from app.auth_utils import get_token_from_cookie, decode_token
-from app.models import User, UserRole
+from app.db.models import User, UserRole
 from app.schemas import TokenPayload
 
 
@@ -84,6 +84,10 @@ ROLE_PERMISSIONS = {
         "settings:read",
         "settings:update",
         "dashboard:read",
+        "projects:read",
+        "projects:create",
+        "projects:update",
+        "projects:delete",
     ],
     UserRole.MANAGER: [
         "users:read",
@@ -91,16 +95,24 @@ ROLE_PERMISSIONS = {
         "users:update",
         "settings:read",
         "dashboard:read",
+        "projects:read",
+        "projects:create",
+        "projects:update",
+        "projects:delete",
     ],
     UserRole.EDITOR: [
         "users:read",
         "users:create",
         "users:update",
         "dashboard:read",
+        "projects:read",
+        "projects:create",
+        "projects:update",
     ],
     UserRole.VIEWER: [
         "users:read",
         "dashboard:read",
+        "projects:read",
     ],
 }
 

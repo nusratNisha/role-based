@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { hasPermission } from '@/utils/roles';
-import { Shield, Bell, Lock } from 'lucide-react';
+import { Shield, Bell } from 'lucide-react';
 
 export const Settings: React.FC = () => {
   const { user } = useAuth();

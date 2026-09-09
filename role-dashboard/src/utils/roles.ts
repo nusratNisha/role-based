@@ -11,20 +11,24 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   admin: [
     'users:read', 'users:create', 'users:update', 'users:delete',
     'settings:read', 'settings:update',
-    'dashboard:read'
+    'dashboard:read',
+    'projects:read', 'projects:create', 'projects:update', 'projects:delete'
   ],
   manager: [
     'users:read', 'users:create', 'users:update',
     'settings:read',
-    'dashboard:read'
+    'dashboard:read',
+    'projects:read', 'projects:create', 'projects:update', 'projects:delete'
   ],
   editor: [
     'users:read', 'users:update',
-    'dashboard:read'
+    'dashboard:read',
+    'projects:read', 'projects:create', 'projects:update'
   ],
   viewer: [
     'users:read',
-    'dashboard:read'
+    'dashboard:read',
+    'projects:read'
   ],
 };
 

@@ -1,7 +1,7 @@
 import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.database import AsyncSessionLocal, engine, Base
-from app.models import User, UserRole
+from app.db.database import AsyncSessionLocal, engine, Base
+from app.db.models import Project, User, UserRole
 from app.auth_utils import hash_password
 
 

@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, Response, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-
 from app.db.database import get_db
 from app.db.models import User
 from app.schemas import LoginRequest, UserCreate, UserResponse
@@ -23,6 +22,7 @@ async def register(
     response: Response,
     db: AsyncSession = Depends(get_db),
 ):
+    # Check if email exists
     result = await db.execute(select(User).where(User.email == data.email))
     if result.scalar_one_or_none():
         raise HTTPException(

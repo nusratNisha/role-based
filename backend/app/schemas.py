@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from datetime import datetime
 from typing import Optional
-from app.models import UserRole
+from app.db.models import ProjectStatus, UserRole
 from pydantic.alias_generators import to_camel
 
 # ─── Shared ───
@@ -35,6 +35,32 @@ class UserResponse(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class ProjectCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=200)
+    description: Optional[str] = Field(None, max_length=2000)
+    status: ProjectStatus = ProjectStatus.PLANNING
+    assigned_to_id: str
+
+
+class ProjectUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=200)
+    description: Optional[str] = Field(None, max_length=2000)
+    status: Optional[ProjectStatus] = None
+    assigned_to_id: Optional[str] = None
+
+
+class ProjectResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    name: str
+    description: Optional[str]
+    status: ProjectStatus
+    assigned_to_id: str
     created_at: datetime
     updated_at: datetime
 

@@ -4,9 +4,9 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
-from app.config import get_settings
-from app.database import Base
-from app.models import User  # noqa: ensure models are loaded
+from app.config.config import get_settings
+from app.db.database import Base
+from app.db.models import Project, User  # noqa: ensure models are loaded
 
 settings = get_settings()
 config = context.config
