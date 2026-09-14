@@ -25,7 +25,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (token) {
         try {
           const user = await api.getCurrentUser();
-          setState({ user, token, isAuthenticated: true });
+          setState({ user, token: api.getToken(), isAuthenticated: true });
         } catch {
           api.clearToken();
         }
@@ -48,7 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const logout = useCallback(() => {
-    api.clearToken();
+    void api.logout().catch(() => api.clearToken());
     setState({ user: null, token: null, isAuthenticated: false });
   }, []);
 

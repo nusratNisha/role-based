@@ -24,7 +24,7 @@ async def get_current_user(
 
     payload: TokenPayload | None = decode_token(token)
 
-    if not payload or not payload.sub:
+    if not payload or not payload.sub or payload.type not in {None, "access"}:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",

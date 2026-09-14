@@ -26,7 +26,7 @@ export const Projects: React.FC = () => {
   const canCreate = currentUser ? hasPermission(currentUser.role, 'projects:create') : false;
   const canUpdate = currentUser ? hasPermission(currentUser.role, 'projects:update') : false;
   const canDelete = currentUser ? hasPermission(currentUser.role, 'projects:delete') : false;
-  const canAssign = currentUser?.role === 'admin' || currentUser?.role === 'manager';
+  const canAssign = currentUser?.role === 'admin' || currentUser?.role === 'manager' || currentUser?.role === 'editor';
 
   useEffect(() => {
     const load = async () => {

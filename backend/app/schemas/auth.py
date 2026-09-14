@@ -1,15 +1,21 @@
-from fastapi import APIRouter, Depends, Response, HTTPException, status
+from fastapi import APIRouter, Depends, Request, Response, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.db.database import get_db
-from app.db.models import User
+
+from backend.app.db.database import get_db
+from backend.app.db.models import User
 from app.schemas import LoginRequest, UserCreate, UserResponse
+
+
 from app.auth_utils import (
     verify_password,
     hash_password,
     create_access_token,
+    create_refresh_token,
     set_auth_cookie,
+    set_refresh_cookie,
     delete_auth_cookie,
+    delete_refresh_cookie,
 )
 from app.dependencies import get_current_user
 
@@ -49,7 +55,7 @@ async def register(
     return AuthResponse(user=user, token=token)
 
 
-@router.post("/login")
+@router.post("/auth/login")
 async def login(
     data: LoginRequest,
     response: Response,
@@ -75,7 +81,11 @@ async def login(
 
     from app.schemas import AuthResponse
     return AuthResponse(user=user, token=token)
-
+@router.get("/validate", response_model=UserResponse)
+async def validate_token(
+    current_user: User = Depends(get_current_user),
+):
+    return current_user
 
 @router.post("/logout")
 async def logout(response: Response):

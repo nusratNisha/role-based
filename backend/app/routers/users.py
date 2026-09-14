@@ -82,7 +82,10 @@ async def list_users(
         result = await db.execute(
             select(User)
             .where(
-                User.role == UserRole.VIEWER
+                User.role.in_([
+                UserRole.EDITOR,
+                UserRole.VIEWER,
+            ])
             )
             .offset(skip)
             .limit(limit)

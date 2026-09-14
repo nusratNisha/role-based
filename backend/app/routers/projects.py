@@ -37,6 +37,15 @@ async def ensure_assignee_exists(assigned_to_id: str, db: AsyncSession) -> User:
     return user
 
 
+def can_assign_project(current_user: User, assignee: User) -> bool:
+    if current_user.role in {UserRole.ADMIN, UserRole.MANAGER}:
+        return True
+    return current_user.role == UserRole.EDITOR and assignee.role in {
+        UserRole.EDITOR,
+        UserRole.VIEWER,
+    }
+
+
 @router.get(
     "",
     response_model=List[ProjectResponse],
@@ -66,12 +75,12 @@ async def create_project(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role == UserRole.EDITOR and data.assigned_to_id != current_user.id:
+    assignee = await ensure_assignee_exists(data.assigned_to_id, db)
+    if not can_assign_project(current_user, assignee):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Editors may only create projects assigned to themselves",
+            detail="Editors can assign only to editors or viewers",
         )
-    await ensure_assignee_exists(data.assigned_to_id, db)
     project = Project(**data.model_dump())
     db.add(project)
     await db.commit()
@@ -112,10 +121,13 @@ async def update_project(
 
     update_data = data.model_dump(exclude_unset=True)
     assigned_to_id = update_data.get("assigned_to_id")
-    if current_user.role == UserRole.EDITOR and assigned_to_id is not None and assigned_to_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Editors may not reassign projects")
     if assigned_to_id is not None:
-        await ensure_assignee_exists(assigned_to_id, db)
+        assignee = await ensure_assignee_exists(assigned_to_id, db)
+        if not can_assign_project(current_user, assignee):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Editors can assign only to editors or viewers",
+            )
     for field, value in update_data.items():
         setattr(project, field, value)
     await db.commit()

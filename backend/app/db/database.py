@@ -4,7 +4,6 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
 )
 from sqlalchemy.orm import DeclarativeBase
-
 from app.config.config import get_settings
 
 settings = get_settings()
@@ -13,7 +12,7 @@ DATABASE_URL = settings.DATABASE_URL
 
 engine = create_async_engine(
     DATABASE_URL,
-    echo=True,  # Set False later
+    echo=True,  
     pool_pre_ping=True,
 )
 

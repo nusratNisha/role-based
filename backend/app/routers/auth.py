@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Response, HTTPException, status
+from fastapi import APIRouter, Depends, Request, Response, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -9,8 +9,13 @@ from app.auth_utils import (
     verify_password,
     hash_password,
     create_access_token,
+    create_refresh_token,
     set_auth_cookie,
+    set_refresh_cookie,
     delete_auth_cookie,
+    delete_refresh_cookie,
+    decode_token,
+    get_refresh_token_from_cookie,
 )
 from app.dependencies import get_current_user
 
@@ -42,11 +47,13 @@ async def register(
     await db.commit()
     await db.refresh(user)
 
-    token = create_access_token(str(user.id), user.role.value)
-    set_auth_cookie(response, token)
+    access_token = create_access_token(str(user.id), user.role.value)
+    refresh_token = create_refresh_token(str(user.id))
+    set_auth_cookie(response, access_token)
+    set_refresh_cookie(response, refresh_token)
 
     from app.schemas import AuthResponse
-    return AuthResponse(user=user, token=token)
+    return AuthResponse(user=user, token=access_token)
 
 
 @router.post("/login")
@@ -70,19 +77,59 @@ async def login(
             detail="Account is inactive",
         )
 
-    token = create_access_token(str(user.id), user.role.value)
-    set_auth_cookie(response, token)
+    access_token = create_access_token(str(user.id), user.role.value)
+    refresh_token = create_refresh_token(str(user.id))
+    set_auth_cookie(response, access_token)
+    set_refresh_cookie(response, refresh_token)
 
     from app.schemas import AuthResponse
-    return AuthResponse(user=user, token=token)
+    return AuthResponse(user=user, token=access_token)
+
+
+@router.post("/refresh")
+async def refresh_token(
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    refresh_token_value = get_refresh_token_from_cookie(request)
+    if not refresh_token_value:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token missing",
+        )
+
+    payload = decode_token(refresh_token_value)
+    if not payload or payload.type != "refresh" or not payload.sub:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+        )
+
+    result = await db.execute(select(User).where(User.id == payload.sub))
+    user = result.scalar_one_or_none()
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid user",
+        )
+
+    access_token = create_access_token(str(user.id), user.role.value)
+    set_auth_cookie(response, access_token)
+    return {"token": access_token}
 
 
 @router.post("/logout")
 async def logout(response: Response):
     delete_auth_cookie(response)
+    delete_refresh_cookie(response)
     return {"message": "Logout successful"}
 
 
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+@router.get("/validate", response_model=UserResponse)
+async def validate_token(current_user: User = Depends(get_current_user)):
     return current_user

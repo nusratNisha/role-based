@@ -1,7 +1,7 @@
 import { LoginCredentials, RegisterData, User, DashboardStats, Project, ProjectStatus } from '@/types';
 
 // FastAPI
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'http://localhost:8000/api/v1';
 
 class ApiClient {
   private token: string | null = null;
@@ -23,7 +23,11 @@ class ApiClient {
     return this.token;
   }
 
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {},
+    allowRefresh = true,
+  ): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -40,9 +44,23 @@ class ApiClient {
       headers,
     });
 
+    const refreshExcluded = ['/auth/login', '/auth/register', '/auth/refresh', '/auth/logout'].includes(endpoint);
+    if (response.status === 401 && allowRefresh && !refreshExcluded) {
+      try {
+        await this.refreshToken();
+        return this.request<T>(endpoint, options, false);
+      } catch {
+        this.clearToken();
+      }
+    }
+
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'An error occurred' }));
       throw new Error(error.detail || `HTTP ${response.status}`);
+    }
+
+    if (response.status === 204) {
+      return undefined as T;
     }
 
     return response.json();
@@ -81,8 +99,23 @@ class ApiClient {
   }
 
   async getCurrentUser(): Promise<User> {
-    const response = await this.request<any>('/auth/me');
+    const response = await this.request<any>('/auth/validate');
     return this.mapUser(response);
+  }
+
+  async refreshToken(): Promise<string> {
+    const response = await this.request<{ token: string }>(
+      '/auth/refresh',
+      { method: 'POST' },
+      false,
+    );
+    this.setToken(response.token);
+    return response.token;
+  }
+
+  async logout(): Promise<void> {
+    await this.request('/auth/logout', { method: 'POST' }, false);
+    this.clearToken();
   }
 
   // Users

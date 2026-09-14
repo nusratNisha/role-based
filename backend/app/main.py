@@ -22,14 +22,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router, prefix="/api")
-app.include_router(users.router, prefix="/api")
-app.include_router(dashboard.router, prefix="/api")
-app.include_router(projects.router, prefix="/api")
+API_PREFIX = "/api/v1"
 
+app.include_router(auth.router, prefix=API_PREFIX)
 
-@app.get("/")
-async def root():
+@app.get(f"{API_PREFIX}/health")
+async def health():
     return {
-        "message": "RBAC backend is running"
+        "status": "healthy",
+        "service": "RBAC Dashboard API",
     }
+app.include_router(users.router, prefix=API_PREFIX)
+app.include_router(dashboard.router, prefix=API_PREFIX)
+app.include_router(projects.router, prefix=API_PREFIX)
