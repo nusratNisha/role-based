@@ -35,7 +35,7 @@ export const Register: React.FC = () => {
         firstName: formData.firstName,
         lastName: formData.lastName,
       });
-      navigate('/');
+      navigate('/login');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {

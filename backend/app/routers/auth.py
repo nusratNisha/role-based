@@ -4,7 +4,7 @@ from sqlalchemy import select
 
 from app.db.database import get_db
 from app.db.models import User
-from app.schemas import LoginRequest, UserCreate, UserResponse
+from app.schemas import (LoginRequest, UserCreate, UserResponse, AuthResponse, TokenResponse)
 from app.auth_utils import (
     verify_password,
     hash_password,
@@ -21,7 +21,7 @@ from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-
+# Register
 @router.post("/register", response_model=None, status_code=status.HTTP_201_CREATED)
 async def register(
     data: UserCreate,
@@ -53,10 +53,22 @@ async def register(
     set_refresh_cookie(response, refresh_token)
 
     from app.schemas import AuthResponse
-    return AuthResponse(user=user, token=access_token)
+    return AuthResponse(
+        user=user,
+        tokens=TokenResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            token_type="bearer",
+        ),
+    )
 
+# Login
+@router.post(
+"/login",
+response_model=AuthResponse, 
+status_code=status.HTTP_200_OK,
+)
 
-@router.post("/login")
 async def login(
     data: LoginRequest,
     response: Response,
@@ -65,12 +77,13 @@ async def login(
     result = await db.execute(select(User).where(User.email == data.email))
     user = result.scalar_one_or_none()
 
+    # Invalid email or password
     if not user or not verify_password(data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
         )
-
+    # Inactive account
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -85,7 +98,7 @@ async def login(
     from app.schemas import AuthResponse
     return AuthResponse(user=user, token=access_token)
 
-
+# Refresh Token
 @router.post("/refresh")
 async def refresh_token(
     request: Request,

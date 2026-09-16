@@ -1,5 +1,4 @@
-from pydantic import (BaseModel, EmailStr, Field,
-    ConfigDict, model_validator,)
+from pydantic import (BaseModel, EmailStr, Field, ConfigDict, model_validator,)
 from datetime import datetime
 from typing import Optional
 
@@ -100,7 +99,7 @@ class UserResponse(UserBase):
     auth_provider: Optional[str] = None
 
     is_active: bool
-    must_change_password: bool
+    must_change_password: bool = False
 
     hris_id: Optional[str] = None
     facility_id: Optional[str] = None
@@ -185,9 +184,14 @@ class TokenPayload(BaseModel):
     exp: Optional[datetime] = None
 
 
-class AuthResponse(BaseModel):
-    user: UserResponse
-    token: str
+class TokenResponse(BaseModel):
+    access_token: str 
+    refresh_token: str 
+    token_type: str = "bearer"
+
+class AuthResponse(BaseModel): 
+    user: UserResponse 
+    tokens: TokenResponse
 
 
 # ─────────────────────────────────────────

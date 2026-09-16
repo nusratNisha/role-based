@@ -1,0 +1,6 @@
+{
+  "proxy": "https://dev.surveillance.dghs.gov.bd",
+  "dependencies": {
+    "axios": "^1.20.0"
+  }
+}

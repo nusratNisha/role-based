@@ -1,235 +1,308 @@
-import { LoginCredentials, RegisterData, User, DashboardStats, Project, ProjectStatus } from '@/types';
+import axios, {
+  AxiosInstance,
+  AxiosRequestConfig,
+  AxiosResponse,
+} from 'axios';
 
-// FastAPI
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+import {
+  LoginCredentials,
+  User,
+  UserRole,
+} from '@/types';
+
+const DGHS_API_BASE_URL = '/api/auth/api/v1';
+
+interface DghsUser {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+  status: string;
+  auth_provider: string;
+  is_active: boolean;
+  must_change_password: boolean;
+  hris_id: string | null;
+  facility_id: string | null;
+  lab_id: string | null;
+  mobile: string | null;
+  first_name: string;
+  last_name: string;
+  division_id: string | null;
+  district_id: string | null;
+  upazila_id: string | null;
+  union_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface DghsAuthResponse {
+  user: DghsUser;
+  tokens: {
+    access_token: string;
+    refresh_token: string;
+    token_type: string;
+  };
+}
+
+interface DghsTokenResponse {
+  access_token: string;
+  refresh_token?: string;
+  token_type: string;
+}
+
+interface RetryableRequestConfig extends AxiosRequestConfig {
+  _retry?: boolean;
+}
 
 class ApiClient {
-  private token: string | null = null;
+  private dghsClient: AxiosInstance;
 
-  setToken(token: string) {
-    this.token = token;
-    localStorage.setItem('token', token);
+  constructor() {
+    this.dghsClient = axios.create({
+      baseURL: DGHS_API_BASE_URL,
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+    });
+
+    this.setupInterceptors();
+  }
+
+  private setupInterceptors() {
+    this.dghsClient.interceptors.request.use((config) => {
+      const accessToken = localStorage.getItem('accessToken');
+
+      if (accessToken) {
+        config.headers = config.headers || {};
+        config.headers.Authorization = `Bearer ${accessToken}`;
+      }
+
+      return config;
+    });
+
+    this.dghsClient.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const originalRequest =
+          error.config as RetryableRequestConfig;
+
+        if (
+          error.response?.status === 401 &&
+          !originalRequest?._retry &&
+          !originalRequest?.url?.includes('/auth/login') &&
+          !originalRequest?.url?.includes('/auth/refresh')
+        ) {
+          originalRequest._retry = true;
+
+          try {
+            const tokenResponse =
+              await this.refreshToken();
+
+            if (tokenResponse.access_token) {
+              localStorage.setItem(
+                'accessToken',
+                tokenResponse.access_token,
+              );
+
+              originalRequest.headers = {
+                ...originalRequest.headers,
+                Authorization: `Bearer ${tokenResponse.access_token}`,
+              };
+
+              return this.dghsClient.request(
+                originalRequest,
+              );
+            }
+          } catch {
+            this.clearToken();
+          }
+        }
+
+        return Promise.reject(error);
+      },
+    );
+  }
+
+  private async dghsRequest<T>(
+    config: AxiosRequestConfig,
+  ): Promise<T> {
+    const response: AxiosResponse<T> =
+      await this.dghsClient.request<T>(config);
+
+    return response.data;
+  }
+
+  setToken(
+    accessToken: string,
+    refreshToken: string,
+  ) {
+    localStorage.setItem(
+      'accessToken',
+      accessToken,
+    );
+
+    localStorage.setItem(
+      'refreshToken',
+      refreshToken,
+    );
   }
 
   clearToken() {
-    this.token = null;
-    localStorage.removeItem('token');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
   }
 
   getToken(): string | null {
-    if (!this.token) {
-      this.token = localStorage.getItem('token');
-    }
-    return this.token;
+    return localStorage.getItem('accessToken');
   }
 
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {},
-    allowRefresh = true,
-  ): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint}`;
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...((options.headers as Record<string, string>) || {}),
-    };
+  async login(
+    credentials: LoginCredentials,
+  ): Promise<User> {
+    const response =
+      await this.dghsRequest<DghsAuthResponse>({
+        method: 'POST',
+        url: '/auth/login',
+        data: {
+          email: credentials.email,
+          password: credentials.password,
+        },
+      });
 
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
+    console.log('DGHS LOGIN RESPONSE:', response);
+
+    if (!response.tokens) {
+      throw new Error(
+        'DGHS login response does not contain tokens',
+      );
     }
 
-    const response = await fetch(url, {
-      ...options,
-      credentials: 'include',
-      headers,
-    });
-
-    const refreshExcluded = ['/auth/login', '/auth/register', '/auth/refresh', '/auth/logout'].includes(endpoint);
-    if (response.status === 401 && allowRefresh && !refreshExcluded) {
-      try {
-        await this.refreshToken();
-        return this.request<T>(endpoint, options, false);
-      } catch {
-        this.clearToken();
-      }
+    if (!response.tokens.access_token) {
+      throw new Error(
+        'DGHS login response does not contain an access token',
+      );
     }
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'An error occurred' }));
-      throw new Error(error.detail || `HTTP ${response.status}`);
+    if (!response.tokens.refresh_token) {
+      throw new Error(
+        'DGHS login response does not contain a refresh token',
+      );
     }
 
-    if (response.status === 204) {
-      return undefined as T;
-    }
+    this.setToken(
+      response.tokens.access_token,
+      response.tokens.refresh_token,
+    );
 
-    return response.json();
-  }
+    console.log(
+      'Access token saved:',
+      !!localStorage.getItem('accessToken'),
+    );
 
-  // Auth
-  async login(credentials: LoginCredentials): Promise<{ user: User; token: string }> {
-    const response = await this.request<{ user: any; token: string }>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    });
-    
-    return {
-      user: this.mapUser(response.user),
-      token: response.token,
-    };
-  }
+    console.log(
+      'Refresh token saved:',
+      !!localStorage.getItem('refreshToken'),
+    );
 
-  async register(data: RegisterData): Promise<{ user: User; token: string }> {
-    const response = await this.request<{ user: any; token: string }>('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({
-        email: data.email,
-        password: data.password,
-        first_name: data.firstName,
-        last_name: data.lastName,
-        role: 'viewer',
-        is_active: true,
-      }),
-    });
-    
-    return {
-      user: this.mapUser(response.user),
-      token: response.token,
-    };
+    return this.mapUser(response.user);
   }
 
   async getCurrentUser(): Promise<User> {
-    const response = await this.request<any>('/auth/validate');
+    const response =
+      await this.dghsRequest<DghsUser>({
+        method: 'GET',
+        url: '/auth/validate',
+      });
+
     return this.mapUser(response);
   }
 
-  async refreshToken(): Promise<string> {
-    const response = await this.request<{ token: string }>(
-      '/auth/refresh',
-      { method: 'POST' },
-      false,
-    );
-    this.setToken(response.token);
-    return response.token;
+  async refreshToken(): Promise<DghsTokenResponse> {
+    const refreshToken =
+      localStorage.getItem('refreshToken');
+
+    if (!refreshToken) {
+      throw new Error(
+        'No refresh token available',
+      );
+    }
+
+    const response =
+      await this.dghsRequest<DghsTokenResponse>({
+        method: 'POST',
+        url: '/auth/refresh',
+        data: {
+          refresh_token: refreshToken,
+        },
+      });
+
+    if (response.access_token) {
+      localStorage.setItem(
+        'accessToken',
+        response.access_token,
+      );
+    }
+
+    if (response.refresh_token) {
+      localStorage.setItem(
+        'refreshToken',
+        response.refresh_token,
+      );
+    }
+
+    return response;
   }
 
   async logout(): Promise<void> {
-    await this.request('/auth/logout', { method: 'POST' }, false);
-    this.clearToken();
+    const refreshToken =
+      localStorage.getItem('refreshToken');
+
+    try {
+      if (refreshToken) {
+        await this.dghsRequest({
+          method: 'POST',
+          url: '/auth/logout',
+          data: {
+            refresh_token: refreshToken,
+          },
+        });
+      }
+    } finally {
+      this.clearToken();
+    }
   }
 
-  // Users
-  async getUsers(): Promise<User[]> {
-    const users = await this.request<any[]>('/users');
-    return users.map(user => this.mapUser(user));
-  }
+  private mapUser(
+    data: DghsUser,
+  ): User {
+    const role =
+      String(data.role).toLowerCase();
 
-  async createUser(user: Omit<User, 'id' | 'createdAt'>): Promise<User> {
-    const response = await this.request<any>('/users', {
-      method: 'POST',
-      body: JSON.stringify({
-        email: user.email,
-        password: 'ChangeMe123!',
-        first_name: user.firstName,
-        last_name: user.lastName,
-        role: user.role,
-        is_active: user.isActive,
-      }),
-    });
-    return this.mapUser(response);
-  }
+    const userRole: UserRole =
+      role === 'admin'
+        ? 'admin'
+        : role === 'manager'
+          ? 'manager'
+          : role === 'editor'
+            ? 'editor'
+            : role === 'facility'
+              ? 'facility'
+              : 'viewer';
 
-  async updateUser(id: string, user: Partial<User>): Promise<User> {
-    const response = await this.request<any>(`/users/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        first_name: user.firstName,
-        last_name: user.lastName,
-        role: user.role,
-        is_active: user.isActive,
-      }),
-    });
-    return this.mapUser(response);
-  }
-
-  async deleteUser(id: string): Promise<void> {
-    await this.request<void>(`/users/${id}`, { method: 'DELETE' });
-  }
-
-  // Projects
-  async getProjects(): Promise<Project[]> {
-    const projects = await this.request<any[]>('/projects');
-    return projects.map(project => this.mapProject(project));
-  }
-
-  async createProject(data: {
-    name: string;
-    description?: string;
-    status: ProjectStatus;
-    assignedToId: string;
-  }): Promise<Project> {
-    const response = await this.request<any>('/projects', {
-      method: 'POST',
-      body: JSON.stringify({
-        name: data.name,
-        description: data.description,
-        status: data.status,
-        assigned_to_id: data.assignedToId,
-      }),
-    });
-    return this.mapProject(response);
-  }
-
-  async updateProject(id: string, data: Partial<{
-    name: string;
-    description: string;
-    status: ProjectStatus;
-    assignedToId: string;
-  }>): Promise<Project> {
-    const response = await this.request<any>(`/projects/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        name: data.name,
-        description: data.description,
-        status: data.status,
-        assigned_to_id: data.assignedToId,
-      }),
-    });
-    return this.mapProject(response);
-  }
-
-  async deleteProject(id: string): Promise<void> {
-    await this.request<void>(`/projects/${id}`, { method: 'DELETE' });
-  }
-
-  // Dashboard
-  async getDashboardStats(): Promise<DashboardStats> {
-    return await this.request<DashboardStats>('/dashboard/stats');
-  }
-
-  // Helper to convert snake_case to camelCase
-  private mapUser(data: any): User {
     return {
-      id: data.id,
+      id: String(data.id),
       email: data.email,
-      firstName: data.first_name || data.firstName,
-      lastName: data.last_name || data.lastName,
-      role: data.role as any,
-      isActive: data.is_active !== undefined ? data.is_active : data.isActive,
-      createdAt: data.created_at || data.createdAt,
-      lastLogin: data.last_login || data.lastLogin,
-    };
-  }
-
-  private mapProject(data: any): Project {
-    return {
-      id: data.id,
-      name: data.name,
-      description: data.description,
-      status: data.status,
-      assignedToId: data.assigned_to_id || data.assignedToId,
-      createdAt: data.created_at || data.createdAt,
-      updatedAt: data.updated_at || data.updatedAt,
+      firstName:
+        data.first_name ||
+        data.username ||
+        data.email,
+      lastName:
+        data.last_name || '',
+      role: userRole,
+      isActive: data.is_active,
+      createdAt: data.created_at,
+      lastLogin: data.updated_at,
     };
   }
 }
